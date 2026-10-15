@@ -1,57 +1,97 @@
 # ToneForge AI
 
-An AI-powered guitar effects suite: describe a tone in plain English (or
-reference a song/artist), get a full signal chain — amp, cab, EQ, drive,
-delay, reverb, compression, modulation — generated and ready to tweak by
-hand. Runs as a VST3 plugin and as a standalone desktop app.
+A guitar-effects plugin where you describe a tone in plain English, or name a song, and get a full pedalboard you can adjust by hand. It runs as a VST3 plugin and as a standalone desktop app. The language side runs locally through [Ollama](https://ollama.com), so no cloud service is involved.
 
-**Status: MVP foundation (Milestone 1 of the roadmap).** Read
-`docs/ARCHITECTURE.md` first, then `docs/ROADMAP.md` for what's built vs.
-planned. Short version: the DSP core and the AI backend are implemented and
-tested; the JUCE plugin UI is scaffolded but not yet built or run anywhere
-(needs a real desktop toolchain — see `docs/SETUP_WINDOWS.md`).
+I built it for my own use, and I plan to release it as open source.
+
+## Status
+
+Working on Windows, and still early.
+
+- The DSP core, the JUCE plugin (VST3 and standalone), and the AI backend all build and run.
+- Results are rough approximations of a tone, not recreations. The amp is a simple waveshaper plus tone stack, and the cabinet is an EQ curve rather than impulse-response convolution.
+- Tone quality has only been judged by ear on my own machine. There is no formal evaluation.
+- Songs outside the small curated table are inferred by a 4B-parameter local model, which does not reliably know obscure songs. Those results are labelled as approximations.
+- Not yet built: saving and loading presets from the UI, and a model picker in the plugin (the model is set by an environment variable).
+- No license file yet. TODO: choose one before accepting contributions.
+
+## How it works
+
+```
+Plugin UI (JUCE)  ──HTTP──>  FastAPI backend  ──>  provider
+ AI panel:                    /generate              ├─ Ollama (local model, default gemma3:4b)
+ Generate / Modify /          /modify                └─ Mock (deterministic keywords; tests + fallback)
+ Explain / Reference Song     /explain
+                              /song-reference
+                              /health
+```
+
+1. The backend turns text into a small **tone descriptor**: gain, brightness, compression, delay, reverb, modulation, noise gate, plus reverb type, modulation type, and overdrive-versus-distortion.
+2. One mapping function expands that descriptor into a full preset of pedal parameters. The model never writes raw parameter values, and both providers share this mapping.
+3. The plugin loads the preset into its eight pedalboard slots.
+
+If Ollama is unavailable or returns unusable output after retries, the backend falls back to the deterministic provider instead of failing.
+
+**Song references.** A small hand-curated table is matched by fuzzy search. A miss goes to the local model, and the result carries a match type and confidence and is presented as an approximation.
 
 ## Layout
 
 ```
-core/         ToneForgeCore - pure C++20 DSP + signal chain + preset model. No JUCE dependency.
-plugin/       JUCE VST3 / Standalone wrapper around core. Not yet built/verified.
+core/         ToneForgeCore: pure C++20 DSP, signal chain, preset model. No JUCE dependency.
+plugin/       JUCE VST3 / Standalone wrapper and the AI panel.
 ai-backend/   Python FastAPI service: language -> preset JSON.
-presets/      JSON schema + factory presets.
+presets/      JSON schema and factory presets.
 docs/         Architecture, thread model, DSP, AI, Windows setup, roadmap.
-scripts/      Dev-loop helpers (e.g. verify_factory_presets.cpp).
+scripts/      Dev-loop helpers.
 ```
 
-## Quick start
+The effect modules are noise gate, compressor, overdrive, distortion, amp, cabinet, EQ, modulation (chorus, flanger, phaser, tremolo), delay, and reverb (hall, plate, spring, room).
 
-**DSP core** (works on any C++20 toolchain, no JUCE required):
+## Build and run (Windows)
 
-```bash
+Requires Visual Studio 2022 with the C++ workload, CMake 3.22+, Python 3.10+, and optionally Docker for Ollama. See `docs/SETUP_WINDOWS.md` for details.
+
+**DSP core and tests** (no JUCE needed):
+
+```powershell
 cmake -S . -B build -DTONEFORGE_BUILD_PLUGIN=OFF
-cmake --build build
-ctest --test-dir build --output-on-failure
+cmake --build build --config Debug
+ctest --test-dir build -C Debug --output-on-failure
 ```
 
-27/27 tests passing as of this milestone, verified additionally under
-AddressSanitizer + UndefinedBehaviorSanitizer.
+**Plugin** (fetches JUCE with CMake, so the first build is long):
+
+```powershell
+cmake -S . -B build -DTONEFORGE_BUILD_PLUGIN=ON
+cmake --build build --config Release
+```
+
+The standalone app is at `build\plugin\ToneForgeAI_artefacts\Release\Standalone\ToneForge AI.exe`. The filename contains a space, so call it with `&` and quotes in PowerShell.
 
 **AI backend:**
 
-```bash
+```powershell
 cd ai-backend
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-python3 -m pytest -q        # 25/25 passing, no Ollama required
+python -m pytest -q
 uvicorn app.main:app --host 127.0.0.1 --port 8765 --reload
 ```
 
-**Plugin (VST3 + Standalone):** see `docs/SETUP_WINDOWS.md` — requires
-JUCE (fetched via CMake `FetchContent`) and a full desktop toolchain, so it
-hasn't been built in the environment this scaffold was produced in. That's
-flagged explicitly rather than glossed over.
+The plugin expects the backend on port 8765. The backend works without Ollama, using the mock provider.
 
-## Why the DSP has zero third-party or JUCE dependencies
+**Local model (optional):**
 
-So it can be built, unit-tested, and reasoned about anywhere a C++20
-compiler exists — including a headless sandbox with no GUI, no DAW, and no
-package registry access, which is exactly the environment this milestone
-was verified in. See `docs/ARCHITECTURE.md` for the full rationale.
+```powershell
+docker run -d -p 11434:11434 --name ollama ollama/ollama
+docker exec -it ollama ollama pull gemma3:4b
+```
+
+The default model is `gemma3:4b`. Set `TONEFORGE_OLLAMA_MODEL` to use another (see `ai-backend/app/config.py`).
+
+## Docs
+
+Start with `docs/ARCHITECTURE.md`, then `docs/ROADMAP.md` for what is built and what is planned.
+
+`ai-backend/scripts/` also holds a training-data generator and a fine-tuning script (`docs/FINE_TUNING_WINDOWS.md`). I wrote them while exploring fine-tuning a small model, but never ran a training job, so they are untested.

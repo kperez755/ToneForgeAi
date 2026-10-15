@@ -1,0 +1,125 @@
+{
+  "id": "factory-warm-clean-jazz",
+  "name": "Warm Clean Jazz (Factory)",
+  "description": "Generated from: \"warm clean jazz tone\"",
+  "author": "ToneForge AI",
+  "schemaVersion": 1,
+  "tags": [
+    "clean",
+    "warm",
+    "jazz"
+  ],
+  "favorite": false,
+  "chain": [
+    {
+      "moduleId": "noise_gate.v1",
+      "bypassed": false,
+      "parameters": {
+        "threshold_db": -51.0,
+        "attack_ms": 2.0,
+        "hold_ms": 76.0,
+        "release_ms": 158.0
+      },
+      "resourceRef": null
+    },
+    {
+      "moduleId": "compressor.v1",
+      "bypassed": false,
+      "parameters": {
+        "ratio": 2.15,
+        "threshold_db": -7.8,
+        "attack_ms": 5.0,
+        "release_ms": 80.0,
+        "makeup_db": 0.5999999999999999
+      },
+      "resourceRef": null
+    },
+    {
+      "moduleId": "drive.v1",
+      "bypassed": true,
+      "parameters": {
+        "gain_db": 0.0,
+        "tone": 0.32999999999999996,
+        "level_db": -3.0
+      },
+      "resourceRef": null
+    },
+    {
+      "moduleId": "amp.v1",
+      "bypassed": false,
+      "parameters": {
+        "gain": 0.2,
+        "bass": 0.59,
+        "mid": 0.5,
+        "treble": 0.37,
+        "presence": 0.32
+      },
+      "resourceRef": "amp_model.generic_tube_v1"
+    },
+    {
+      "moduleId": "cab.v1",
+      "bypassed": false,
+      "parameters": {
+        "mix": 1.0
+      },
+      "resourceRef": "cab_ir.generic_4x12_v1"
+    },
+    {
+      "moduleId": "eq.v1",
+      "bypassed": false,
+      "parameters": {
+        "low_gain_db": 0.8500000000000001,
+        "mid_gain_db": 0.0,
+        "high_gain_db": -1.75
+      },
+      "resourceRef": null
+    },
+    {
+      "moduleId": "modulation.v1",
+      "bypassed": true,
+      "parameters": {
+        "rate_hz": 1.2,
+        "depth": 0.1,
+        "mix": 0.15
+      },
+      "resourceRef": null
+    },
+    {
+      "moduleId": "delay.v1",
+      "bypassed": true,
+      "parameters": {
+        "time_ms": 380.0,
+        "feedback": 0.15,
+        "mix": 0.1
+      },
+      "resourceRef": null
+    },
+    {
+      "moduleId": "reverb.v1",
+      "bypassed": false,
+      "parameters": {
+        "size": 0.29000000000000004,
+        "decay_s": 1.205,
+        "mix": 0.128
+      },
+      "resourceRef": null
+    },
+    {
+      "moduleId": "limiter.v1",
+      "bypassed": false,
+      "parameters": {
+        "ceiling_db": -0.3,
+        "release_ms": 50.0
+      },
+      "resourceRef": null
+    }
+  ],
+  "aiProvenance": {
+    "provider": "mock",
+    "prompt": "warm clean jazz tone",
+    "matchType": "generated",
+    "confidence": 1.0,
+    "disclaimer": "AI-generated starting point - tweak to taste."
+  },
+  "createdAt": "2026-07-27T00:00:00Z"
+}

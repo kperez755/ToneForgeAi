@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://toneforge.ai/schema/preset.schema.json",
+  "title": "ToneForge AI Preset",
+  "description": "Schema for preset JSON produced by tfcore::PresetSerializer::toJson (core/src/preset/PresetSerializer.cpp) and by the ai-backend PresetDTO (ai-backend/app/schemas/preset.py). Both must stay in sync with this document - see the docstring in preset.py.",
+  "type": "object",
+  "required": ["id", "name", "schemaVersion", "chain"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "author": { "type": "string" },
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "favorite": { "type": "boolean" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "chain": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/moduleState" }
+    },
+    "aiProvenance": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/definitions/aiProvenance" }
+      ]
+    }
+  },
+  "definitions": {
+    "moduleState": {
+      "type": "object",
+      "required": ["moduleId"],
+      "properties": {
+        "moduleId": { "type": "string", "minLength": 1 },
+        "bypassed": { "type": "boolean" },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "resourceRef": {
+          "oneOf": [{ "type": "null" }, { "type": "string" }]
+        }
+      }
+    },
+    "aiProvenance": {
+      "type": "object",
+      "required": ["provider", "prompt", "matchType", "confidence", "disclaimer"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1 },
+        "prompt": { "type": "string" },
+        "matchType": {
+          "type": "string",
+          "enum": ["generated", "modified", "song_curated", "song_inferred"]
+        },
+        "confidence": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+        "disclaimer": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Must never be empty - enforced by AiProvenanceDTO's validator on the Python side and by convention on the C++ side. Exists specifically so an AI-generated or song-referenced preset can never be presented as an exact recreation."
+        }
+      }
+    }
+  }
+}
